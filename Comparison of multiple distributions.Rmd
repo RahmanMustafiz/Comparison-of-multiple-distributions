@@ -1,0 +1,189 @@
+---
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r}
+library(dplyr)
+library(car)
+library(ggplot2)
+library(gridExtra)
+
+
+
+#Task 1
+babies <- read.csv("~/Desktop/babies.csv", header = TRUE, sep =";")
+
+non_smokers <- 
+  babies %>% 
+  filter(smoke == 0) %>%
+  select(birth_weight = wt) %>%
+  mutate(smoking_status = "Never")
+non_smokers_summary <- non_smokers %>%
+  summarise(min_birth_weight = min(birth_weight, na.rm = TRUE),
+            mean_birth_weight = mean(birth_weight, na.rm = TRUE),
+            median_birth_weight = median(birth_weight, na.rm = TRUE),
+            max_birth_weight = max(birth_weight, na.rm = TRUE),
+            q1 = quantile(birth_weight, 0.25, na.rm=TRUE),
+            q3 = quantile(birth_weight, 0.75, na.rm=TRUE))
+
+non_smokers_summary
+
+smokers <- 
+  babies %>% 
+  filter(smoke == 1) %>%
+  select(birth_weight = wt) %>% 
+  mutate(smoking_status = "Smokes now")
+smokers_summary <- smokers %>%
+  summarise(min_birth_weight = min(birth_weight, na.rm = TRUE),
+            mean_birth_weight = mean(birth_weight, na.rm = TRUE),
+            median_birth_weight = median(birth_weight, na.rm = TRUE),
+            max_birth_weight = max(birth_weight, na.rm = TRUE),
+            q1 = quantile(birth_weight, 0.25, na.rm=TRUE),
+            q3 = quantile(birth_weight, 0.75, na.rm=TRUE))
+          
+smokers_summary
+
+
+smoke_until_current_pregnancy <-
+  babies %>% 
+  filter(smoke == 2) %>%
+  select(birth_weight = wt) %>%
+  mutate(smoking_status = "Until current pregnancy")
+smoke_until_current_pregnancy_summary <- smoke_until_current_pregnancy %>%
+  summarise(min_birth_weight = min(birth_weight, na.rm = TRUE),
+            mean_birth_weight = mean(birth_weight, na.rm = TRUE),
+            median_birth_weight = median(birth_weight, na.rm = TRUE),
+            max_birth_weight = max(birth_weight, na.rm = TRUE),
+            q1 = quantile(birth_weight, 0.25, na.rm=TRUE),
+            q3 = quantile(birth_weight, 0.75, na.rm=TRUE))
+
+smoke_until_current_pregnancy_summary
+
+
+
+once_smoke <-
+  babies %>% 
+  filter(smoke == 3) %>%
+  select(birth_weight = wt) %>%
+  mutate(smoking_status = "Once did")
+
+once_smoke_summary <- once_smoke %>%
+  summarise(min_birth_weight = min(birth_weight, na.rm = TRUE),
+            mean_birth_weight = mean(birth_weight, na.rm = TRUE),
+            median_birth_weight = median(birth_weight, na.rm = TRUE),
+            max_birth_weight = max(birth_weight, na.rm = TRUE),
+            q1 = quantile(birth_weight, 0.25, na.rm=TRUE),
+            q3 = quantile(birth_weight, 0.75, na.rm=TRUE))
+once_smoke_summary
+
+smoking_bw <- rbind(smokers, non_smokers, smoke_until_current_pregnancy, once_smoke)
+
+
+
+tbl <- with(smoking_bw, table(smoking_status, birth_weight))
+
+
+tbl1 <- with(smokers, table(smoking_status, birth_weight))
+tbl2 <- with(non_smokers, table(smoking_status, birth_weight))
+tbl3 <- with(smoke_until_current_pregnancy, table(smoking_status, birth_weight))
+tbl4 <- with(once_smoke, table(smoking_status, birth_weight))
+
+
+d1 <- ggplot(as.data.frame(tbl1), aes(birth_weight, Freq, fill = smoking_status)) + scale_x_discrete(guide = guide_axis(check.overlap = TRUE)) +
+  geom_col(position = 'dodge')+
+  theme_bw()
+
+
+d2 <- ggplot(as.data.frame(tbl2), aes(birth_weight, Freq, fill = smoking_status)) + scale_x_discrete(guide = guide_axis(check.overlap = TRUE), ) +
+  geom_col(position = 'dodge')+
+  theme_bw()
+
+
+d3 <- ggplot(as.data.frame(tbl3), aes(birth_weight, Freq, fill = smoking_status)) + scale_x_discrete(guide = guide_axis(check.overlap = TRUE)) +
+  geom_col(position = 'dodge')+
+  theme_bw()
+
+
+d4 <- ggplot(as.data.frame(tbl4), aes(birth_weight, Freq, fill = smoking_status)) + scale_x_discrete(guide = guide_axis(check.overlap = TRUE)) +
+  geom_col(position = 'dodge')+
+  theme_bw()
+
+
+grid.arrange(d1, d2 , d3, d4, ncol=2, nrow=2)
+
+
+ggplot(smoking_bw , aes(x = smoking_status)) +
+  geom_bar(color='blue', fill='blue')+
+  geom_text(stat='count', aes(label=..count..), vjust=-0.2)
+
+#Task 2
+# Q-Q plot
+baby_data <- babies %>%
+  mutate(smoke = dplyr::recode(smoke, "0" = "Never", "1" = "Smokes now", "2" = "Until current pregnancy", "3" = "Once did"))
+
+par(mfrow=c(2,2))
+p1 <- qqnorm(baby_data$wt[baby_data$smoke == "Never"], cex.lab=1.5, main="Never", cex.main=1.5, cex.axis=1.5)
+qqline(baby_data$wt[baby_data$smoke == "Never"])
+
+p2 <- qqnorm(baby_data$wt[baby_data$smoke == "Smokes now"], cex.lab=1.5, main="Smokes now", cex.main=1.5, cex.axis=1.5)
+qqline(baby_data$wt[baby_data$smoke == "Smokes now"])
+
+p3 <- qqnorm(baby_data$wt[baby_data$smoke == "Until current pregnancy"], cex.lab=1.5, main="Until current pregnancy", cex.main=1.5, cex.axis=1.5)
+qqline(baby_data$wt[baby_data$smoke == "Until current pregnancy"])
+
+p4 <- qqnorm(baby_data$wt[baby_data$smoke == "Once did"], cex.lab=1.5, main="Once did", cex.main=1.5, cex.axis=1.5)
+qqline(baby_data$wt[baby_data$smoke == "Once did"])
+
+par(mfrow=c(1,1))
+
+
+levene_test <- leveneTest(wt ~ smoke, data=baby_data, center = mean)
+
+levene_test
+
+
+
+# Run One-way ANOVA test
+
+
+model <- aov(wt ~ smoke, data = baby_data)
+summary(model)
+
+# Write anova values as a table in csv file
+#anova(model) %>% as.data.frame() %>% write.csv(file = "anova_table.csv")
+
+#Task 3
+babies <- na.omit(babies)
+data <- babies
+# Subset the data
+subset_data <- data[data$wt != 999 & data$smoke != 9, c("wt", "smoke")]
+
+# Conduct pairwise two-sample t-tests
+pairwise_ttests <- pairwise.t.test(subset_data$wt, subset_data$smoke, p.adjust.method = "none")
+pairwise_ttests
+
+# Adjust the p-values using the Bonferroni correction
+pairwise_ttests_corrected <- pairwise.t.test(data$wt, data$smoke, p.adjust.method = "bonferroni")
+pairwise_ttests_corrected
+
+# Perform Tukey's HSD test
+subset_data$smoke <- as.factor(subset_data$smoke)
+tukey_hsd <- TukeyHSD(aov(wt ~ smoke, data = subset_data))
+tukey_hsd
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```
